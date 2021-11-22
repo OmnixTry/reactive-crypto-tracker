@@ -43,7 +43,10 @@ namespace ProcessingApp.Price_Service.Src.Service.Impl
             // TODO: verify that price message are valid
             // HINT: Use MessageMapper methods to perform filtering and validation
 
-            return Observable.Never<Dictionary<string, object>>();
+            // used Linq syntax for filtering operation
+            return input
+                .Where(m => { return MessageMapper.IsPriceMessageType(m) 
+                    && MessageMapper.IsValidPriceMessage(m); });
         }
 
         // Visible for testing
