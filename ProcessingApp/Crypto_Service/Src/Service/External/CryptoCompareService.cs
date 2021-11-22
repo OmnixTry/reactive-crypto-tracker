@@ -34,7 +34,8 @@ namespace ProcessingApp.Crypto_Service.Src.Service.External
         // TODO: implement resilience such as retry with delay
         private static IObservable<T> ProvideResilience<T>(IObservable<T> input)
         {
-            return input.RetryWhen(errors => errors.Delay(TimeSpan.FromSeconds(2)));
+            // resubscribes to source observable if failure occured when handler function generates result
+            return input.RetryWhen(exception => exception.Delay(TimeSpan.FromSeconds(2)));
         }
 
         // TODO: implement caching of 3 last elements & multi subscribers support
