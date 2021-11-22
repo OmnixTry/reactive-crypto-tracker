@@ -54,7 +54,7 @@ namespace ProcessingApp.Price_Service.Src.Service.Impl
         {
             // TODO map to Statistic message using MessageMapper.mapToPriceMessage
 
-            return Observable.Never<MessageDTO<float>>();
+            return input.Select(m => MessageMapper.MapToPriceMessage(m));
         }
 
         // 1.1)   TODO Collect crypto currency price during the interval of seconds
@@ -82,7 +82,23 @@ namespace ProcessingApp.Price_Service.Src.Service.Impl
         private static IObservable<MessageDTO<float>> AveragePrice(IObservable<long> requestedInterval,
             IObservable<MessageDTO<float>> priceData)
         {
-            return Observable.Never<MessageDTO<float>>();
+            // Return just creates an observable emitting 1 element
+            // using it in case client didn't save any information (so called Corner Case)
+            // after the client sends new window it will be applied
+            return Observable.Concat(Observable.Return(DEFAULT_AVG_PRICE_INTERVAL), requestedInterval)
+                .Select(timeInterval => // 5
+                    priceData
+                        .Window(TimeSpan.FromSeconds(timeInterval)) // splits observables into groups with time interval
+                                                                // (makes the Observable<Observable<>>)
+                        .SelectMany(priceMessage => // turns observable sequences into different sequences and merges them
+                            priceMessage
+                                .GroupBy(m => m.Currency) // groups observables and finds averagin for every currency
+                                .SelectMany(grouped => grouped
+                                    .Aggregate(Sum.Empty(), (sum, mes) => sum.Add(mes.Data), sum => sum.Avg())
+                                    .Select(avg => MessageDTO<float>.Avg(avg, grouped.Key, "Local"))
+                            ))
+                )
+                .Switch();
         }
     }
 }
