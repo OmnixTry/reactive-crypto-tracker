@@ -41,7 +41,14 @@ namespace ProcessingApp.Crypto_Service.Src.Service.External
         // TODO: implement caching of 3 last elements & multi subscribers support
         private static IObservable<T> ProvideCaching<T>(IObservable<T> input)
         {
-            return Observable.Never<T>();
+            // ReplaySubject caches last nvalues and on subscription gives them all
+            var replaySubject = new ReplaySubject<T>(3);
+            // observers that subscribe to this observable
+            // subscribe to the subject under thye hood
+            // and then receive items published to it
+            var connectableObservable = input.Multicast(replaySubject); 
+            connectableObservable.Connect(); // subscribes subject to underlying observable
+            return connectableObservable;
         }
     }
 }
